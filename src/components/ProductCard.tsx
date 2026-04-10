@@ -9,6 +9,8 @@ import { db } from '@/src/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/utils';
 import { toast } from 'sonner';
 
+import bridge from '@vkontakte/vk-bridge';
+
 interface ProductCardProps {
   product: Product;
   isAdmin: boolean;
@@ -16,11 +18,12 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) => {
   const handleBuy = () => {
-    // VK Group messages link pattern: https://vk.com/im?sel=-GROUP_ID
-    // Since we don't have the specific Group ID yet, we'll use a placeholder or generic VK link
-    // The user can configure this later.
-    const vkLink = `https://vk.com/im?media=&sel=-225432123&msg_body=Здравствуйте! Хочу купить пеларгонию: ${product.name}`;
-    window.open(vkLink, '_blank');
+    // ВАЖНО: Используем ID вашей группы из ссылки
+    const groupId = 'pelargoniuman'; 
+    const message = encodeURIComponent(`Здравствуйте! Хочу купить пеларгонию: ${product.name}`);
+    const vkLink = `https://vk.me/${groupId}?ref=catalog&ref_source=${message}`;
+    
+    bridge.send('VKWebAppOpenURL', { url: vkLink });
   };
 
   const handleDelete = async () => {
