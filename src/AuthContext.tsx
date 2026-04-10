@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
+import bridge from '@vkontakte/vk-bridge';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
+      let vkId: number | undefined;
+      try {
+        const vkUser = await bridge.send('VKWebAppGetUserInfo');
+        vkId = vkUser.id;
+      } catch (e) {
+        console.log('Not in VK environment or user denied info');
+      }
+
       if (firebaseUser) {
         try {
           const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -31,18 +40,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (userDoc.exists()) {
             const data = userDoc.data() as UserProfile;
-            setProfile(data);
-          } else {
-            // Check if user is in moderators list or is the main admin
+            
+            // Re-verify role based on current moderator list
             const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
             const moderatorEmails = moderatorsDoc.exists() ? moderatorsDoc.data().emails || [] : [];
+            const moderatorVkIds = moderatorsDoc.exists() ? moderatorsDoc.data().vkIds || [] : [];
             
             const isMainAdmin = firebaseUser.email === 'lfos0.music@gmail.com';
-            const isModerator = moderatorEmails.includes(firebaseUser.email);
+            const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email)) || 
+                               (vkId && moderatorVkIds.includes(vkId));
+            
+            const newRole = (isMainAdmin || isModerator) ? 'admin' : 'user';
+            
+            // Update profile if vkId or role changed
+            if ((vkId && data.vkId !== vkId) || data.role !== newRole) {
+              const updates: any = { role: newRole };
+              if (vkId) updates.vkId = vkId;
+              await updateDoc(userDocRef, updates);
+              data.role = newRole;
+              if (vkId) data.vkId = vkId;
+            }
+            setProfile(data);
+          } else {
+            // Check if user is in moderators list (by email or VK ID)
+            const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
+            const moderatorEmails = moderatorsDoc.exists() ? moderatorsDoc.data().emails || [] : [];
+            const moderatorVkIds = moderatorsDoc.exists() ? moderatorsDoc.data().vkIds || [] : [];
+            
+            const isMainAdmin = firebaseUser.email === 'lfos0.music@gmail.com';
+            const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email)) || 
+                               (vkId && moderatorVkIds.includes(vkId));
 
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
+              vkId: vkId,
               role: (isMainAdmin || isModerator) ? 'admin' : 'user'
             };
             await setDoc(userDocRef, newProfile);

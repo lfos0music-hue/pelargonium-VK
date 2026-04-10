@@ -14,5 +14,6 @@ export interface Product {
 export interface UserProfile {
   uid: string;
   email: string | null;
-  role: 'admin' | 'user';
+  vkId?: number;
+  role: 'admin' | 'moderator' | 'user';
 }
