@@ -1,11 +1,7 @@
 import bridge from '@vkontakte/vk-bridge';
 
-// Инициализация VK Bridge как можно раньше
-try {
-  bridge.send('VKWebAppInit');
-} catch (e) {
-  console.error('VK Bridge Init Error:', e);
-}
+// Инициализация VK Bridge
+bridge.send('VKWebAppInit');
 
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
