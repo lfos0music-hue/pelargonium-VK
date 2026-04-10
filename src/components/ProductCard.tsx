@@ -3,11 +3,12 @@ import { Product } from '@/src/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Trash2, Package } from 'lucide-react';
+import { MessageCircle, Trash2, Package, Edit } from 'lucide-react';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/src/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/utils';
 import { toast } from 'sonner';
+import { EditProductDialog } from './EditProductDialog';
 
 import bridge from '@vkontakte/vk-bridge';
 
@@ -23,7 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) =>
     const message = encodeURIComponent(`Здравствуйте! Хочу купить пеларгонию: ${product.name}`);
     const vkLink = `https://vk.me/${groupId}?ref=catalog&ref_source=${message}`;
     
-    bridge.send('VKWebAppOpenURL', { url: vkLink });
+    (bridge.send as any)('VKWebAppOpenURL', { url: vkLink });
   };
 
   const handleDelete = async () => {
@@ -75,9 +76,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) =>
           Купить
         </Button>
         {isAdmin && (
-          <Button variant="outline" size="icon" className="text-destructive hover:bg-destructive/10" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <EditProductDialog product={product} />
+            <Button variant="outline" size="icon" className="text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </CardFooter>
     </Card>

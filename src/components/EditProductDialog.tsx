@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/src/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -7,20 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, Loader2, Upload, X } from 'lucide-react';
+import { Edit, Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { resizeImage } from '@/src/lib/imageUtils';
+import { Product } from '@/src/types';
 
-export const AddProductDialog: React.FC = () => {
+interface EditProductDialogProps {
+  product: Product;
+}
+
+export const EditProductDialog: React.FC<EditProductDialogProps> = ({ product }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(product.imageUrl);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    imageUrl: '',
-    category: '',
+    name: product.name,
+    description: product.description || '',
+    price: product.price.toString(),
+    imageUrl: product.imageUrl,
+    category: product.category || '',
   });
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,27 +47,19 @@ export const AddProductDialog: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.imageUrl) {
-      toast.error("Пожалуйста, добавьте фото товара");
-      return;
-    }
     setLoading(true);
 
     try {
-      const path = 'products';
-      await addDoc(collection(db, path), {
+      const docRef = doc(db, 'products', product.id!);
+      await updateDoc(docRef, {
         ...formData,
         price: parseFloat(formData.price),
-        inStock: true,
-        createdAt: Timestamp.now(),
       });
       
-      toast.success('Товар успешно добавлен!');
+      toast.success('Товар обновлен');
       setOpen(false);
-      setFormData({ name: '', description: '', price: '', imageUrl: '', category: '' });
-      setImagePreview(null);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'products');
+      handleFirestoreError(error, OperationType.UPDATE, `products/${product.id}`);
     } finally {
       setLoading(false);
     }
@@ -71,14 +68,13 @@ export const AddProductDialog: React.FC = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
-        <Button className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Добавить товар
+        <Button variant="outline" size="icon" className="hover:bg-primary/10">
+          <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Новый товар</DialogTitle>
+          <DialogTitle>Редактировать товар</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
@@ -110,46 +106,42 @@ export const AddProductDialog: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">Название сорта</Label>
+            <Label htmlFor="edit-name">Название сорта</Label>
             <Input 
-              id="name" 
+              id="edit-name" 
               required 
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Напр. Appleblossom Rosebud"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="price">Цена (₽)</Label>
+            <Label htmlFor="edit-price">Цена (₽)</Label>
             <Input 
-              id="price" 
+              id="edit-price" 
               type="number" 
               required 
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="500"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="category">Категория</Label>
+            <Label htmlFor="edit-category">Категория</Label>
             <Input 
-              id="category" 
+              id="edit-category" 
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              placeholder="Зональная, Плющелистная..."
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Описание</Label>
+            <Label htmlFor="edit-description">Описание</Label>
             <Textarea 
-              id="description" 
+              id="edit-description" 
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Особенности сорта, ухода..."
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить изменения'}
           </Button>
         </form>
       </DialogContent>

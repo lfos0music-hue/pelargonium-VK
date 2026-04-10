@@ -4,6 +4,7 @@ import { db } from './firebase';
 import { Product } from './types';
 import { useAuth } from './AuthContext';
 import { AddProductDialog } from './components/AddProductDialog';
+import { AdminPanel } from './components/AdminPanel';
 import { ProductCard } from './components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Loader2, LogIn, LogOut, Flower2, ShoppingBag } from 'lucide-react';
@@ -49,7 +50,12 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3">
-              {isAdmin && <AddProductDialog />}
+              {isAdmin && (
+                <>
+                  <AdminPanel />
+                  <AddProductDialog />
+                </>
+              )}
               
               {!authLoading && (
                 user ? (

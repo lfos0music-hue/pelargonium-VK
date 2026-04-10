@@ -30,13 +30,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
-            setProfile(userDoc.data() as UserProfile);
+            const data = userDoc.data() as UserProfile;
+            setProfile(data);
           } else {
-            // Create default profile for new users
+            // Check if user is in moderators list or is the main admin
+            const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
+            const moderatorEmails = moderatorsDoc.exists() ? moderatorsDoc.data().emails || [] : [];
+            
+            const isMainAdmin = firebaseUser.email === 'lfos0.music@gmail.com';
+            const isModerator = moderatorEmails.includes(firebaseUser.email);
+
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              role: firebaseUser.email === 'lfos0.music@gmail.com' ? 'admin' : 'user'
+              role: (isMainAdmin || isModerator) ? 'admin' : 'user'
             };
             await setDoc(userDocRef, newProfile);
             setProfile(newProfile);
