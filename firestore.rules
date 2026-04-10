@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: products
+    // Document ID: {productId}
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - price: number (required, positive)
+    //   - imageUrl: string (optional, URL)
+    //   - category: string (optional)
+    //   - inStock: bool (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, ['admin', 'user'])
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "lfos0.music@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'inStock', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.price is number && data.price >= 0 &&
+             data.inStock is bool &&
+             data.createdAt is timestamp &&
+             (!('description' in data) || (data.description is string && data.description.size() < 2000)) &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.matches("^https?://.*"))) &&
+             (!('category' in data) || (data.category is string && data.category.size() < 50));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.email is string &&
+             data.role in ['admin', 'user'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /products/{productId} {
+      allow read: if true; // Catalog is public
+      allow create, update: if isAdmin() && isValidProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+    }
+  }
+}

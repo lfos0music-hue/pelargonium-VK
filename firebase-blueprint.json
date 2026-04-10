@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A pelargonium product in the catalog",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the pelargonium variety" },
+        "description": { "type": "string", "description": "Detailed description of the variety" },
+        "price": { "type": "number", "description": "Price in Rubles" },
+        "imageUrl": { "type": "string", "description": "URL to the product image" },
+        "category": { "type": "string", "description": "Category of pelargonium (e.g., Zonal, Ivy-leaf)" },
+        "inStock": { "type": "boolean", "description": "Whether the product is currently available" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the product was added" }
+      },
+      "required": ["name", "price", "inStock"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile with roles",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog of pelargoniums"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User roles and profiles"
+    }
+  }
+}
