@@ -2,41 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.bundle.js"></script>
-    <script>
-      window.onerror = function(msg, url, line, col, error) {
-        console.error('Global error:', msg, 'at', url, ':', line, ':', col, error);
-        return false;
-      };
-      
-      function initVK() {
-        if (typeof vkBridge !== 'undefined') {
-          vkBridge.send('VKWebAppInit')
-            .then(data => console.log('VK Bridge Init success:', data))
-            .catch(error => console.error('VK Bridge Init error:', error));
-        } else {
-          console.error('vkBridge is not defined yet');
-        }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Пеларгонии России</title>
+    <style>
+      body { margin: 0; padding: 0; background-color: #f8fafc; }
+      #loading-screen {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
+        color: #64748b;
       }
-
-      // Запускаем сразу и через небольшие промежутки времени
-      initVK();
-      setTimeout(initVK, 500);
-      setTimeout(initVK, 1000);
-      setTimeout(initVK, 3000);
-    </script>
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #0077ff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
     <div id="root">
-      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; gap: 20px; padding: 20px; text-align: center;">
-        <div style="font-size: 18px; font-weight: bold;">Загрузка каталога...</div>
-        <div style="font-size: 14px; color: #666;">Если вы видите это сообщение дольше 5 секунд, нажмите кнопку ниже:</div>
-        <button onclick="initVK(); location.reload();" style="padding: 12px 24px; background: #0077FF; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-          Инициализировать и обновить
-        </button>
-        <div style="font-size: 12px; color: #999;">Убедитесь, что в настройках VK указана верная ссылка (Shared URL)</div>
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        <div style="font-weight: 500;">Загрузка магазина...</div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
