@@ -65,31 +65,69 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleAddModeratorVkId = async (id?: number) => {
-    const vkId = id || parseInt(newModeratorVkId);
-    if (isNaN(vkId)) {
-      toast.error("Введите корректный VK ID");
-      return;
+  const handleAddModeratorVkId = async (idOrName?: string | number) => {
+    let input = idOrName !== undefined ? idOrName.toString() : newModeratorVkId.trim();
+    
+    if (!input) return;
+
+    // Clean up input if it's a URL
+    if (input.includes('vk.com/')) {
+      input = input.split('vk.com/').pop() || '';
     }
+    input = input.replace(/https?:\/\//, '').replace(/\//g, '');
+
     setLoading(true);
     try {
+      let finalVkId: number;
+
+      // If it's not a pure number, try to resolve screen name
+      if (!/^\d+$/.test(input)) {
+        toast.info("Определяем ID по имени...");
+        
+        // We need a token to call resolveScreenName
+        const urlParams = new URLSearchParams(window.location.search);
+        const appId = parseInt(urlParams.get('vk_app_id') || '0');
+        
+        const tokenRes = await bridge.send("VKWebAppGetAuthToken", { 
+          app_id: appId || 0, 
+          scope: "" 
+        });
+
+        const resolveRes = await bridge.send("VKWebAppCallAPIMethod", {
+          method: "utils.resolveScreenName",
+          params: {
+            screen_name: input,
+            v: "5.131",
+            access_token: tokenRes.access_token
+          }
+        });
+
+        if (resolveRes.response && resolveRes.response.type === 'user') {
+          finalVkId = resolveRes.response.object_id;
+        } else {
+          throw new Error("User not found");
+        }
+      } else {
+        finalVkId = parseInt(input);
+      }
+
       const docRef = doc(db, 'config', 'moderators');
       const docSnap = await getDoc(docRef);
       
       if (!docSnap.exists()) {
-        await setDoc(docRef, { emails: [], vkIds: [vkId] });
+        await setDoc(docRef, { emails: [], vkIds: [finalVkId] });
       } else {
         await updateDoc(docRef, {
-          vkIds: arrayUnion(vkId)
+          vkIds: arrayUnion(finalVkId)
         });
       }
       
-      toast.success(`Модератор с VK ID ${vkId} добавлен`);
+      toast.success(`Модератор добавлен (ID: ${finalVkId})`);
       setNewModeratorVkId('');
       fetchModerators();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding VK moderator:", error);
-      toast.error("Ошибка при добавлении");
+      toast.error("Не удалось найти пользователя. Проверьте имя или ID.");
     } finally {
       setLoading(false);
     }
@@ -101,19 +139,29 @@ export const AdminPanel: React.FC = () => {
     try {
       console.log("Attempting to pick friend via VK Bridge...");
       
+      // Check if we are likely inside VK (iframe or mobile app)
+      const isVK = window.location.search.includes('vk_app_id') || 
+                   window.location.search.includes('vk_platform');
+
+      if (!isVK) {
+        toast.error("Эта кнопка работает только внутри приложения ВКонтакте. В браузере введите ID друга вручную.");
+        setPickingFriend(false);
+        return;
+      }
+
       // 1. Get App ID from URL
       const urlParams = new URLSearchParams(window.location.search);
       const appId = parseInt(urlParams.get('vk_app_id') || '0');
       
       if (!appId) {
-        toast.error("Не удалось определить ID приложения. Введите ID вручную.");
+        toast.error("Не удалось определить ID приложения. Пожалуйста, введите ID вручную.");
         setPickingFriend(false);
         return;
       }
 
-      toast.info("Запрашиваем доступ к друзьям...");
+      toast.info("Запрашиваем доступ...");
       
-      // 2. Request 'friends' scope token first (this is often required for the picker to work)
+      // 2. Request 'friends' scope token
       try {
         await bridge.send("VKWebAppGetAuthToken", { 
           app_id: appId, 
@@ -121,29 +169,20 @@ export const AdminPanel: React.FC = () => {
         });
       } catch (tokenError) {
         console.error("Token request failed:", tokenError);
-        // We continue anyway, as some environments might not need it explicitly
       }
 
       toast.info("Открываем список друзей...");
       
       // 3. Show the friend picker UI
-      // We use a longer timeout or no timeout here because the UI is external
       const result = await bridge.send('VKWebAppGetFriends', { multi: false });
       
-      console.log("VK Bridge result:", result);
       if (result && result.users && result.users.length > 0) {
         const friend = result.users[0];
         await handleAddModeratorVkId(friend.id);
-      } else {
-        toast.error("Друг не выбран");
       }
     } catch (error: any) {
       console.error("Error picking friend:", error);
-      if (error.error_data && error.error_data.error_code === 4) {
-        toast.error("Пользователь отменил выбор");
-      } else {
-        toast.error("Не удалось открыть список. Попробуйте ввести ID вручную.");
-      }
+      toast.error("Не удалось открыть список. Попробуйте ввести ID вручную.");
     } finally {
       setPickingFriend(false);
     }
@@ -227,10 +266,10 @@ export const AdminPanel: React.FC = () => {
               </Button>
               <div className="flex gap-2">
                 <Input 
-                  placeholder="Или введите VK ID вручную" 
+                  placeholder="Или введите VK ID или ссылку" 
                   value={newModeratorVkId}
                   onChange={(e) => setNewModeratorVkId(e.target.value)}
-                  type="number"
+                  type="text"
                 />
                 <Button onClick={() => handleAddModeratorVkId()} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
