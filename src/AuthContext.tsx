@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || user?.email?.toLowerCase() === 'lfos0.music@gmail.com';
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, isAdmin, login, logout }}>
