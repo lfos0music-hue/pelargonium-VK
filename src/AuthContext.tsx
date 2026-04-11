@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, getRedirectResult, signInWithRedirect } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
@@ -23,48 +23,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle redirect result
+    getRedirectResult(auth).catch((error) => {
+      console.error("Error getting redirect result:", error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
+          // Non-blocking VK info fetch
           let vkId: number | undefined;
           try {
-            const vkUser = await bridge.send('VKWebAppGetUserInfo');
+            const vkUser = await Promise.race([
+              bridge.send('VKWebAppGetUserInfo'),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+            ]) as any;
             vkId = vkUser.id;
           } catch (e) {
-            console.log('Not in VK environment or user denied info');
+            console.log('VK info fetch failed or timed out');
           }
 
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
           
-          // Hardcoded main admin email
           const MAIN_ADMIN_EMAIL = 'lfos0.music@gmail.com';
           
-          // Fetch moderators list safely
           let moderatorEmails: string[] = [];
           let moderatorVkIds: number[] = [];
           try {
             const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
             if (moderatorsDoc.exists()) {
-              moderatorEmails = moderatorsDoc.data().emails || [];
+              moderatorEmails = (moderatorsDoc.data().emails || []).map((e: string) => e.toLowerCase());
               moderatorVkIds = moderatorsDoc.data().vkIds || [];
             }
           } catch (e) {
             console.error("Error fetching moderators config:", e);
           }
           
-          const isMainAdmin = firebaseUser.email?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
-          const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email.toLowerCase())) || 
+          const userEmail = firebaseUser.email?.toLowerCase();
+          const isMainAdmin = userEmail === MAIN_ADMIN_EMAIL.toLowerCase();
+          const isModerator = (userEmail && moderatorEmails.includes(userEmail)) || 
                              (vkId && moderatorVkIds.includes(vkId));
           
           const newRole = (isMainAdmin || isModerator) ? 'admin' : 'user';
           
           if (userDoc.exists()) {
             const data = userDoc.data() as UserProfile;
-            
-            // Update profile if vkId or role changed
             if ((vkId && data.vkId !== vkId) || data.role !== newRole) {
               const updates: any = { role: newRole };
               if (vkId) updates.vkId = vkId;
@@ -84,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setProfile(newProfile);
           }
         } catch (error) {
-          console.error("Error fetching/creating user profile:", error);
+          console.error("Error in profile logic:", error);
         }
       } else {
         setProfile(null);
@@ -97,16 +103,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
     try {
+      // Try popup first
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Login error:", error);
-      if (error.code === 'auth/popup-blocked') {
-        toast.error("Всплывающее окно заблокировано. Пожалуйста, разрешите всплывающие окна или откройте приложение в браузере.");
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, no need for error toast
-      } else {
-        toast.error("Ошибка входа. Если вы в приложении ВК, попробуйте нажать 'Открыть в браузере' в меню (три точки).");
+      
+      // If popup is blocked or fails in mobile environment, try redirect
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/internal-error' || error.code === 'auth/network-request-failed') {
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectError) {
+          console.error("Redirect error:", redirectError);
+          toast.error("Не удалось открыть окно входа. Пожалуйста, используйте меню 'Открыть в браузере' в ВК.");
+        }
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error("Ошибка входа. Попробуйте открыть приложение через браузер.");
       }
     }
   };
