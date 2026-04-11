@@ -49,7 +49,7 @@ service cloud.firestore {
              data.inStock is bool &&
              data.createdAt is timestamp &&
              (!('description' in data) || (data.description is string && data.description.size() < 2000)) &&
-             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.matches("^https?://.*"))) &&
+             (!('imageUrl' in data) || (data.imageUrl is string && (data.imageUrl.matches("^https?://.*") || data.imageUrl.matches("^data:image/.*")))) &&
              (!('category' in data) || (data.category is string && data.category.size() < 50));
     }
 

@@ -50,22 +50,36 @@ export const AddProductDialog: React.FC = () => {
 
     try {
       const path = 'products';
+      const priceNum = parseFloat(formData.price);
+      
+      if (isNaN(priceNum)) {
+        toast.error("Пожалуйста, введите корректную цену");
+        setLoading(false);
+        return;
+      }
+
       await addDoc(collection(db, path), {
         ...formData,
-        price: parseFloat(formData.price),
+        price: priceNum,
         inStock: true,
         createdAt: Timestamp.now(),
       });
       
       toast.success('Товар успешно добавлен!');
       setOpen(false);
+      
       // Reset form state after a short delay to allow dialog to close
       setTimeout(() => {
         setFormData({ name: '', description: '', price: '', imageUrl: '', category: '' });
         setImagePreview(null);
       }, 300);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'products');
+    } catch (error: any) {
+      console.error("Add product error:", error);
+      if (error.message?.includes('permission-denied')) {
+        toast.error("Ошибка доступа: у вас нет прав на добавление товаров");
+      } else {
+        toast.error("Не удалось добавить товар. Попробуйте еще раз.");
+      }
     } finally {
       setLoading(false);
     }

@@ -40,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) =>
 
   return (
     <Card className="overflow-hidden flex flex-col h-full group transition-all hover:shadow-xl border-none bg-white/80 backdrop-blur-sm rounded-[2rem]">
-      <div className="relative aspect-square overflow-hidden bg-muted m-2 rounded-[1.5rem]">
+      <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-muted m-2 rounded-[1.5rem]">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 

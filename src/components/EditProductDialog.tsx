@@ -51,15 +51,28 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({ product })
 
     try {
       const docRef = doc(db, 'products', product.id!);
+      const priceNum = parseFloat(formData.price);
+      
+      if (isNaN(priceNum)) {
+        toast.error("Пожалуйста, введите корректную цену");
+        setLoading(false);
+        return;
+      }
+
       await updateDoc(docRef, {
         ...formData,
-        price: parseFloat(formData.price),
+        price: priceNum,
       });
       
       toast.success('Товар обновлен');
       setOpen(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `products/${product.id}`);
+    } catch (error: any) {
+      console.error("Edit product error:", error);
+      if (error.message?.includes('permission-denied')) {
+        toast.error("Ошибка доступа: у вас нет прав на редактирование");
+      } else {
+        toast.error("Не удалось обновить товар. Попробуйте еще раз.");
+      }
     } finally {
       setLoading(false);
     }
