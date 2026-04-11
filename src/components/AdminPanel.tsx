@@ -96,39 +96,40 @@ export const AdminPanel: React.FC = () => {
 
       // If it's not a pure number, try to resolve screen name
       if (!/^\d+$/.test(input)) {
-        if (vkStatus !== 'connected') {
-          toast.error("Связь с ВК отсутствует. Введите цифровой ID (только цифры).");
-          setLoading(false);
-          return;
-        }
-
         toast.info("Определяем ID по имени...");
         
         const urlParams = new URLSearchParams(window.location.search);
         const appId = parseInt(urlParams.get('vk_app_id') || '0');
         
-        // Add timeouts to bridge calls to prevent hangs
-        const tokenRes = await Promise.race([
-          bridge.send("VKWebAppGetAuthToken", { app_id: appId || 0, scope: "" }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
-        ]) as any;
+        try {
+          // Add timeouts to bridge calls to prevent hangs
+          const tokenRes = await Promise.race([
+            bridge.send("VKWebAppGetAuthToken", { app_id: appId || 0, scope: "" }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
+          ]) as any;
 
-        const resolveRes = await Promise.race([
-          bridge.send("VKWebAppCallAPIMethod", {
-            method: "utils.resolveScreenName",
-            params: {
-              screen_name: input,
-              v: "5.131",
-              access_token: tokenRes.access_token
-            }
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
-        ]) as any;
+          const resolveRes = await Promise.race([
+            bridge.send("VKWebAppCallAPIMethod", {
+              method: "utils.resolveScreenName",
+              params: {
+                screen_name: input,
+                v: "5.131",
+                access_token: tokenRes.access_token
+              }
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
+          ]) as any;
 
-        if (resolveRes.response && resolveRes.response.type === 'user') {
-          finalVkId = resolveRes.response.object_id;
-        } else {
-          throw new Error("User not found");
+          if (resolveRes.response && resolveRes.response.type === 'user') {
+            finalVkId = resolveRes.response.object_id;
+          } else {
+            throw new Error("User not found");
+          }
+        } catch (bridgeError) {
+          console.error("Bridge resolve failed:", bridgeError);
+          toast.error("Не удалось связаться с ВК для поиска по имени. Пожалуйста, введите цифровой ID.");
+          setLoading(false);
+          return;
         }
       } else {
         finalVkId = parseInt(input);
