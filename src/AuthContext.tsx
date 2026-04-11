@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
 import bridge from '@vkontakte/vk-bridge';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -25,32 +26,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
-      let vkId: number | undefined;
-      try {
-        const vkUser = await bridge.send('VKWebAppGetUserInfo');
-        vkId = vkUser.id;
-      } catch (e) {
-        console.log('Not in VK environment or user denied info');
-      }
-
       if (firebaseUser) {
         try {
+          let vkId: number | undefined;
+          try {
+            const vkUser = await bridge.send('VKWebAppGetUserInfo');
+            vkId = vkUser.id;
+          } catch (e) {
+            console.log('Not in VK environment or user denied info');
+          }
+
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
           
+          // Hardcoded main admin email
+          const MAIN_ADMIN_EMAIL = 'lfos0.music@gmail.com';
+          
+          // Fetch moderators list safely
+          let moderatorEmails: string[] = [];
+          let moderatorVkIds: number[] = [];
+          try {
+            const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
+            if (moderatorsDoc.exists()) {
+              moderatorEmails = moderatorsDoc.data().emails || [];
+              moderatorVkIds = moderatorsDoc.data().vkIds || [];
+            }
+          } catch (e) {
+            console.error("Error fetching moderators config:", e);
+          }
+          
+          const isMainAdmin = firebaseUser.email?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
+          const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email.toLowerCase())) || 
+                             (vkId && moderatorVkIds.includes(vkId));
+          
+          const newRole = (isMainAdmin || isModerator) ? 'admin' : 'user';
+          
           if (userDoc.exists()) {
             const data = userDoc.data() as UserProfile;
-            
-            // Re-verify role based on current moderator list
-            const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
-            const moderatorEmails = moderatorsDoc.exists() ? moderatorsDoc.data().emails || [] : [];
-            const moderatorVkIds = moderatorsDoc.exists() ? moderatorsDoc.data().vkIds || [] : [];
-            
-            const isMainAdmin = firebaseUser.email === 'lfos0.music@gmail.com';
-            const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email)) || 
-                               (vkId && moderatorVkIds.includes(vkId));
-            
-            const newRole = (isMainAdmin || isModerator) ? 'admin' : 'user';
             
             // Update profile if vkId or role changed
             if ((vkId && data.vkId !== vkId) || data.role !== newRole) {
@@ -62,20 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             setProfile(data);
           } else {
-            // Check if user is in moderators list (by email or VK ID)
-            const moderatorsDoc = await getDoc(doc(db, 'config', 'moderators'));
-            const moderatorEmails = moderatorsDoc.exists() ? moderatorsDoc.data().emails || [] : [];
-            const moderatorVkIds = moderatorsDoc.exists() ? moderatorsDoc.data().vkIds || [] : [];
-            
-            const isMainAdmin = firebaseUser.email === 'lfos0.music@gmail.com';
-            const isModerator = (firebaseUser.email && moderatorEmails.includes(firebaseUser.email)) || 
-                               (vkId && moderatorVkIds.includes(vkId));
-
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               vkId: vkId,
-              role: (isMainAdmin || isModerator) ? 'admin' : 'user'
+              role: newRole
             };
             await setDoc(userDocRef, newProfile);
             setProfile(newProfile);
@@ -94,7 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      if (error.code === 'auth/popup-blocked') {
+        toast.error("Всплывающее окно заблокировано. Пожалуйста, разрешите всплывающие окна или откройте приложение в браузере.");
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // User closed the popup, no need for error toast
+      } else {
+        toast.error("Ошибка входа. Если вы в приложении ВК, попробуйте нажать 'Открыть в браузере' в меню (три точки).");
+      }
+    }
   };
 
   const logout = async () => {
