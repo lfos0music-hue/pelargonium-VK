@@ -74,5 +74,10 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
       allow update: if isAdmin() && isValidUser(request.resource.data);
     }
+
+    match /config/moderators {
+      allow read: if true; // Needed for AuthContext to check permissions
+      allow write: if isAdmin();
+    }
   }
 }

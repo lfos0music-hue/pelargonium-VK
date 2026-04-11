@@ -86,9 +86,19 @@ export const AdminPanel: React.FC = () => {
 
     // Clean up input if it's a URL
     if (input.includes('vk.com/')) {
-      input = input.split('vk.com/').pop() || '';
+      // Handle mobile convo links like https://m.vk.com/mail/convo/223601986
+      if (input.includes('/mail/convo/')) {
+        input = input.split('/mail/convo/').pop()?.split('?')[0] || '';
+      } else {
+        input = input.split('vk.com/').pop()?.split('?')[0] || '';
+      }
     }
-    input = input.replace(/https?:\/\//, '').replace(/\//g, '');
+    input = input.replace(/https?:\/\//, '').replace(/\//g, '').split('?')[0];
+
+    if (!input) {
+      toast.error("Не удалось распознать ID или ссылку");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -99,12 +109,12 @@ export const AdminPanel: React.FC = () => {
         toast.info("Определяем ID по имени...");
         
         const urlParams = new URLSearchParams(window.location.search);
-        const appId = parseInt(urlParams.get('vk_app_id') || '0');
+        const appId = parseInt(urlParams.get('vk_app_id') || '54536832'); // Use ID from screenshot as fallback
         
         try {
           // Add timeouts to bridge calls to prevent hangs
           const tokenRes = await Promise.race([
-            bridge.send("VKWebAppGetAuthToken", { app_id: appId || 0, scope: "" }),
+            bridge.send("VKWebAppGetAuthToken", { app_id: appId, scope: "" }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
           ]) as any;
 

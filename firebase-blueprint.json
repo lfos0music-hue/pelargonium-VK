@@ -24,6 +24,15 @@
         "role": { "type": "string", "enum": ["admin", "user"] }
       },
       "required": ["email", "role"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Global application configuration",
+      "type": "object",
+      "properties": {
+        "emails": { "type": "array", "items": { "type": "string" } },
+        "vkIds": { "type": "array", "items": { "type": "number" } }
+      }
     }
   },
   "firestore": {
@@ -34,6 +43,10 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "User roles and profiles"
+    },
+    "/config/moderators": {
+      "schema": "Config",
+      "description": "List of moderator emails and VK IDs"
     }
   }
 }
