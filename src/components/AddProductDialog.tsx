@@ -59,8 +59,11 @@ export const AddProductDialog: React.FC = () => {
       
       toast.success('Товар успешно добавлен!');
       setOpen(false);
-      setFormData({ name: '', description: '', price: '', imageUrl: '', category: '' });
-      setImagePreview(null);
+      // Reset form state after a short delay to allow dialog to close
+      setTimeout(() => {
+        setFormData({ name: '', description: '', price: '', imageUrl: '', category: '' });
+        setImagePreview(null);
+      }, 300);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'products');
     } finally {
@@ -70,12 +73,14 @@ export const AddProductDialog: React.FC = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Добавить товар
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button className="gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Добавить товар
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Новый товар</DialogTitle>

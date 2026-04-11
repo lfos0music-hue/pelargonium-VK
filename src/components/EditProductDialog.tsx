@@ -67,11 +67,13 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({ product })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button variant="outline" size="icon" className="hover:bg-primary/10">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="icon" className="hover:bg-primary/10">
+            <Edit className="h-4 w-4" />
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Редактировать товар</DialogTitle>

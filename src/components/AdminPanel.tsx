@@ -256,12 +256,14 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Settings className="h-4 w-4" />
-          Управление
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Управление
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
@@ -286,12 +288,14 @@ export const AdminPanel: React.FC = () => {
           <div className="space-y-4">
             <Label>Оформление</Label>
             <Dialog>
-              <DialogTrigger>
-                <Button variant="outline" className="w-full gap-2">
-                  <Palette className="h-4 w-4" />
-                  Открыть Дизайн-кит (Баннеры ВК)
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger
+                render={
+                  <Button variant="outline" className="w-full gap-2">
+                    <Palette className="h-4 w-4" />
+                    Открыть Дизайн-кит (Баннеры ВК)
+                  </Button>
+                }
+              />
               <DialogContent className="max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <BrandKit />
               </DialogContent>
