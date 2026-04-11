@@ -39,7 +39,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* Header */}
         <header className="sticky top-0 z-50 w-full border-b bg-white/60 backdrop-blur-lg">
-          <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="container mx-auto px-4 pr-24 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-primary p-2.5 rounded-2xl shadow-sm rotate-3">
                 <Flower2 className="h-6 w-6 text-white" />
@@ -52,22 +52,22 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {isAdmin && (
-                <>
+                <div className="flex items-center gap-2 mr-2">
                   <AdminPanel />
                   <AddProductDialog />
-                </>
+                </div>
               )}
               
               {!authLoading && (
                 user ? (
-                  <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
+                  <Button variant="ghost" size="sm" onClick={logout} className="gap-2 rounded-full px-4">
                     <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Выйти</span>
+                    Выйти
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={login} className="gap-2">
+                  <Button variant="default" size="default" onClick={login} className="gap-2 rounded-full px-8 font-bold shadow-lg shadow-primary/20">
                     <LogIn className="h-4 w-4" />
                     Войти
                   </Button>
