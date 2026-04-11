@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '@/src/firebase';
+import { db } from '../firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { BrandKit } from './BrandKit';
 export const AdminPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pickingFriend, setPickingFriend] = useState(false);
   const [newModeratorEmail, setNewModeratorEmail] = useState('');
   const [newModeratorVkId, setNewModeratorVkId] = useState('');
   const [moderatorEmails, setModeratorEmails] = useState<string[]>([]);
@@ -95,16 +96,30 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handlePickFriend = async () => {
+    if (pickingFriend) return;
+    setPickingFriend(true);
     try {
-      // VKWebAppGetFriends returns a list of friends the user picked
+      console.log("Attempting to pick friend via VK Bridge...");
+      toast.info("Открываем список друзей...");
+      // VKWebAppGetFriends displays a selection UI on mobile apps
       const result = await bridge.send('VKWebAppGetFriends', { multi: false });
-      if (result.users && result.users.length > 0) {
+      
+      console.log("VK Bridge result:", result);
+      if (result && result.users && result.users.length > 0) {
         const friend = result.users[0];
-        handleAddModeratorVkId(friend.id);
+        await handleAddModeratorVkId(friend.id);
+      } else {
+        toast.error("Друг не выбран");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error picking friend:", error);
-      // User might have cancelled
+      if (error.error_data && error.error_data.error_code === 4) {
+        toast.error("Пользователь отменил выбор");
+      } else {
+        toast.error("Эта функция работает только в мобильном приложении ВК. В браузере введите ID вручную.");
+      }
+    } finally {
+      setPickingFriend(false);
     }
   };
 
@@ -175,8 +190,13 @@ export const AdminPanel: React.FC = () => {
           <div className="space-y-4">
             <Label>Добавить модератора ВК</Label>
             <div className="flex flex-col gap-2">
-              <Button variant="secondary" onClick={handlePickFriend} className="gap-2 w-full">
-                <Users className="h-4 w-4" />
+              <Button 
+                variant="secondary" 
+                onClick={handlePickFriend} 
+                className="gap-2 w-full"
+                disabled={pickingFriend}
+              >
+                {pickingFriend ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
                 Выбрать из друзей ВК
               </Button>
               <div className="flex gap-2">
