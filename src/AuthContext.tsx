@@ -23,10 +23,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result
-    getRedirectResult(auth).catch((error) => {
-      console.error("Error getting redirect result:", error);
-    });
+    // Handle redirect result with more logging
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Successfully logged in via redirect:", result.user.email);
+        }
+      } catch (error: any) {
+        console.error("Error getting redirect result:", error);
+        if (error.code === 'auth/internal-error' || error.code === 'auth/network-request-failed') {
+          toast.error("Проблема с сетью или сессией. Попробуйте обновить страницу.");
+        }
+      }
+    };
+    
+    handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
