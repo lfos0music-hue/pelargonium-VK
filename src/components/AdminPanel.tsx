@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Settings, UserPlus, Trash2, Loader2, ShieldCheck, Users } from 'lucide-react';
+import { Settings, UserPlus, Trash2, Loader2, ShieldCheck, Users, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import bridge from '@vkontakte/vk-bridge';
+import { BrandKit } from './BrandKit';
 
 export const AdminPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -156,6 +157,21 @@ export const AdminPanel: React.FC = () => {
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          <div className="space-y-4">
+            <Label>Оформление</Label>
+            <Dialog>
+              <DialogTrigger>
+                <Button variant="outline" className="w-full gap-2">
+                  <Palette className="h-4 w-4" />
+                  Открыть Дизайн-кит (Баннеры ВК)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <BrandKit />
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div className="space-y-4">
             <Label>Добавить модератора ВК</Label>
             <div className="flex flex-col gap-2">

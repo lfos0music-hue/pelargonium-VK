@@ -39,13 +39,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) =>
   };
 
   return (
-    <Card className="overflow-hidden flex flex-col h-full group transition-all hover:shadow-md">
-      <div className="relative aspect-square overflow-hidden bg-muted">
+    <Card className="overflow-hidden flex flex-col h-full group transition-all hover:shadow-xl border-none bg-white/80 backdrop-blur-sm rounded-[2rem]">
+      <div className="relative aspect-square overflow-hidden bg-muted m-2 rounded-[1.5rem]">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 
             alt={product.name} 
-            className="object-cover w-full h-full transition-transform group-hover:scale-105"
+            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
           />
         ) : (
@@ -54,26 +54,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin }) =>
           </div>
         )}
         {product.category && (
-          <Badge className="absolute top-2 left-2 bg-white/80 text-black hover:bg-white/90 backdrop-blur-sm">
+          <Badge className="absolute top-3 left-3 bg-white/90 text-primary hover:bg-white backdrop-blur-md border-none px-3 py-1 text-[10px] uppercase tracking-wider font-bold">
             {product.category}
           </Badge>
         )}
       </div>
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-lg line-clamp-1">{product.name}</CardTitle>
+      <CardHeader className="p-6 pb-2">
+        <CardTitle className="text-xl font-serif font-bold line-clamp-1 group-hover:text-primary transition-colors">
+          {product.name}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0 flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+      <CardContent className="p-6 pt-0 flex-grow">
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-6 font-medium leading-relaxed">
           {product.description || 'Нет описания'}
         </p>
-        <div className="text-xl font-bold text-primary">
-          {product.price} ₽
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-serif font-bold text-primary">
+            {product.price}
+          </span>
+          <span className="text-sm font-serif font-bold text-primary opacity-60">₽</span>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 gap-2">
-        <Button className="flex-1 gap-2" onClick={handleBuy}>
+      <CardFooter className="p-6 pt-0 gap-3">
+        <Button className="flex-1 gap-2 rounded-full h-12 font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" onClick={handleBuy}>
           <MessageCircle className="h-4 w-4" />
-          Купить
+          Заказать
         </Button>
         {isAdmin && (
           <div className="flex gap-2">

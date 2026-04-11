@@ -38,15 +38,18 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <Flower2 className="h-6 w-6 text-primary" />
+        <header className="sticky top-0 z-50 w-full border-b bg-white/60 backdrop-blur-lg">
+          <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary p-2.5 rounded-2xl shadow-sm rotate-3">
+                <Flower2 className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight hidden sm:block">
-                Пеларгонии <span className="text-primary">России</span>
-              </h1>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-serif font-bold leading-none">
+                  Пеларгонии <span className="text-primary italic">России</span>
+                </h1>
+                <span className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-60">Коллекционные сорта</span>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -75,21 +78,26 @@ export default function App() {
         </header>
 
         {/* Hero Section */}
-        <section className="bg-white border-b py-12 px-4">
-          <div className="container mx-auto text-center max-w-2xl">
-            <h2 className="text-3xl font-extrabold mb-4 sm:text-4xl">
-              Коллекционные пеларгонии с доставкой
+        <section className="relative py-20 px-4 overflow-hidden">
+          <div className="absolute inset-0 opacity-5 pointer-events-none">
+            <Flower2 className="absolute -top-20 -left-20 w-96 h-96 rotate-12" />
+            <Flower2 className="absolute -bottom-20 -right-20 w-96 h-96 -rotate-12" />
+          </div>
+          <div className="container mx-auto text-center max-w-3xl relative z-10">
+            <h2 className="text-4xl font-serif font-bold mb-6 sm:text-6xl leading-[1.1]">
+              Искусство выращивания <br/>
+              <span className="text-primary italic">совершенства</span>
             </h2>
-            <p className="text-muted-foreground text-lg mb-8">
-              Заказывайте лучшие сорта напрямую через ВКонтакте. Быстрая доставка по всей России.
+            <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+              Откройте для себя мир редких и коллекционных пеларгоний. Бережная доставка из сердца России в ваш дом.
             </p>
-            <div className="flex items-center justify-center gap-8 text-sm font-medium text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-primary" />
+            <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-semibold uppercase tracking-widest text-primary/60">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
+                <ShoppingBag className="h-3.5 w-3.5" />
                 <span>Прямой заказ</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Flower2 className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
+                <Flower2 className="h-3.5 w-3.5" />
                 <span>Сортовые растения</span>
               </div>
             </div>
