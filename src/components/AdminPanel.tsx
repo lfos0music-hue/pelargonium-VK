@@ -96,25 +96,34 @@ export const AdminPanel: React.FC = () => {
 
       // If it's not a pure number, try to resolve screen name
       if (!/^\d+$/.test(input)) {
+        if (vkStatus !== 'connected') {
+          toast.error("Связь с ВК отсутствует. Введите цифровой ID (только цифры).");
+          setLoading(false);
+          return;
+        }
+
         toast.info("Определяем ID по имени...");
         
-        // We need a token to call resolveScreenName
         const urlParams = new URLSearchParams(window.location.search);
         const appId = parseInt(urlParams.get('vk_app_id') || '0');
         
-        const tokenRes = await bridge.send("VKWebAppGetAuthToken", { 
-          app_id: appId || 0, 
-          scope: "" 
-        });
+        // Add timeouts to bridge calls to prevent hangs
+        const tokenRes = await Promise.race([
+          bridge.send("VKWebAppGetAuthToken", { app_id: appId || 0, scope: "" }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
+        ]) as any;
 
-        const resolveRes = await bridge.send("VKWebAppCallAPIMethod", {
-          method: "utils.resolveScreenName",
-          params: {
-            screen_name: input,
-            v: "5.131",
-            access_token: tokenRes.access_token
-          }
-        });
+        const resolveRes = await Promise.race([
+          bridge.send("VKWebAppCallAPIMethod", {
+            method: "utils.resolveScreenName",
+            params: {
+              screen_name: input,
+              v: "5.131",
+              access_token: tokenRes.access_token
+            }
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
+        ]) as any;
 
         if (resolveRes.response && resolveRes.response.type === 'user') {
           finalVkId = resolveRes.response.object_id;
@@ -279,7 +288,17 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <Label>Добавить модератора ВК</Label>
+            <div className="flex items-center justify-between">
+              <Label>Добавить модератора ВК</Label>
+              <a 
+                href="https://regvk.com/id/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[10px] text-primary hover:underline flex items-center gap-1"
+              >
+                Как узнать цифровой ID?
+              </a>
+            </div>
             <div className="flex flex-col gap-2">
               <Button 
                 variant="secondary" 
