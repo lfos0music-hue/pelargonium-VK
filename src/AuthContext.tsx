@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, getRedirectResult, signInWithRedirect } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
@@ -21,31 +21,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
-    // Handle redirect result with more logging
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Successfully logged in via redirect:", result.user.email);
-        }
-      } catch (error: any) {
-        console.error("Error getting redirect result:", error);
-        if (error.code === 'auth/internal-error' || error.code === 'auth/network-request-failed') {
-          toast.error("Проблема с сетью или сессией. Попробуйте обновить страницу.");
-        }
-      }
-    };
-    
-    handleRedirect();
+    // Set persistence to local
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
-          // Non-blocking VK info fetch
           let vkId: number | undefined;
           try {
             const vkUser = await Promise.race([
@@ -114,26 +100,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async () => {
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
+
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
-      // Try popup first
+      // Use popup for cleaner flow in external browsers
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Login error:", error);
-      
-      // If popup is blocked or fails in mobile environment, try redirect
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/internal-error' || error.code === 'auth/network-request-failed') {
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectError) {
-          console.error("Redirect error:", redirectError);
-          toast.error("Не удалось открыть окно входа. Пожалуйста, используйте меню 'Открыть в браузере' в ВК.");
-        }
+      if (error.code === 'auth/popup-blocked') {
+        toast.error("Всплывающее окно заблокировано. Пожалуйста, разрешите всплывающие окна в настройках браузера или нажмите 'Открыть в браузере' в ВК.");
       } else if (error.code !== 'auth/popup-closed-by-user') {
-        toast.error("Ошибка входа. Попробуйте открыть приложение через браузер.");
+        toast.error("Ошибка входа. Пожалуйста, попробуйте открыть сайт напрямую в Chrome или Safari.");
       }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
