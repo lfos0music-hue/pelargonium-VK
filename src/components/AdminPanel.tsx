@@ -101,8 +101,12 @@ export const AdminPanel: React.FC = () => {
     try {
       console.log("Attempting to pick friend via VK Bridge...");
       toast.info("Открываем список друзей...");
-      // VKWebAppGetFriends displays a selection UI on mobile apps
-      const result = await bridge.send('VKWebAppGetFriends', { multi: false });
+      
+      // Add a timeout to the bridge call
+      const result = await Promise.race([
+        bridge.send('VKWebAppGetFriends', { multi: false }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 10000))
+      ]) as any;
       
       console.log("VK Bridge result:", result);
       if (result && result.users && result.users.length > 0) {
@@ -113,7 +117,9 @@ export const AdminPanel: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error picking friend:", error);
-      if (error.error_data && error.error_data.error_code === 4) {
+      if (error.message === 'TIMEOUT') {
+        toast.error("ВК не отвечает. Попробуйте ввести ID вручную.");
+      } else if (error.error_data && error.error_data.error_code === 4) {
         toast.error("Пользователь отменил выбор");
       } else {
         toast.error("Эта функция работает только в мобильном приложении ВК. В браузере введите ID вручную.");
