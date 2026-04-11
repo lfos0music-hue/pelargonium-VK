@@ -292,12 +292,12 @@ export const AdminPanel: React.FC = () => {
             <div className="flex items-center justify-between">
               <Label>Добавить модератора ВК</Label>
               <a 
-                href="https://regvk.com/id/" 
+                href="https://vk.com/faq18062" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-[10px] text-primary hover:underline flex items-center gap-1"
               >
-                Как узнать цифровой ID?
+                Как узнать ID (через сообщения)?
               </a>
             </div>
             <div className="flex flex-col gap-2">
