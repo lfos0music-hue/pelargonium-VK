@@ -18,6 +18,19 @@ export const AdminPanel: React.FC = () => {
   const [newModeratorVkId, setNewModeratorVkId] = useState('');
   const [moderatorEmails, setModeratorEmails] = useState<string[]>([]);
   const [moderatorVkIds, setModeratorVkIds] = useState<number[]>([]);
+  const [vkStatus, setVkStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+
+  const checkVkConnection = async () => {
+    try {
+      const userInfo = await Promise.race([
+        bridge.send('VKWebAppGetUserInfo'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+      ]);
+      if (userInfo) setVkStatus('connected');
+    } catch (e) {
+      setVkStatus('disconnected');
+    }
+  };
 
   const fetchModerators = async () => {
     try {
@@ -36,6 +49,7 @@ export const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (open) {
       fetchModerators();
+      checkVkConnection();
     }
   }, [open]);
 
@@ -230,9 +244,21 @@ export const AdminPanel: React.FC = () => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            Панель администратора
+          <DialogTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Панель администратора
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className={`h-2 w-2 rounded-full ${
+                vkStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 
+                vkStatus === 'disconnected' ? 'bg-red-500' : 'bg-slate-300 animate-pulse'
+              }`} />
+              <span className="text-[10px] uppercase tracking-wider font-bold opacity-50">
+                {vkStatus === 'connected' ? 'VK Connected' : 
+                 vkStatus === 'disconnected' ? 'VK Offline' : 'Checking...'}
+              </span>
+            </div>
           </DialogTitle>
         </DialogHeader>
         
